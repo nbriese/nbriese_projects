@@ -1,0 +1,29 @@
+/*test machine: CSELAB_machine_name * date: mm/dd/yy
+* name: full_name1 , [full_name2]
+* x500: id_for_first_name , [id_for_second_name] */
+
+- Team names and x500
+Nathan Briese bries042
+
+- How to compile the program
+Use the included makefile with the command "make wcs" to compile.
+Then the program can be run using the syntax: $ ./wcs #consumer filename [option] [queue_size]
+Where:
+	#consumer is the number of consumer threads the program will use
+	filename is the relative directory of the .txt file to open
+	option is either "-p", "-b" or "-bp" 
+		"-p" creates a log file "log.txt" describing the activities of different threads
+		"-b" changed the buffer from unbounded to bounded. if you use this tag then you must also provide a queue_size for the buffer in terms of number of lines of the text file that can be in the buffer at a time. However, this has not been implemented.
+		"-pb" activates the log file
+
+- Your and your partner's individual contributions
+I did the whole thing.
+
+- Any assumptions outside this document
+None
+
+- What exactly your program does
+This program will read through the words in a txt file and perform word count statistics on it. This means, for each letter, it will count the number of words which start with that letter. The result is output to the file "result.txt". The task is actually partially parellelized. There is a producer thread which reads the text file and feeds packets of words to the consumers which read the packets and count the starting letters and send their partial results to the parent thread.
+
+- If you have attempted extra credit
+No
