@@ -2,6 +2,9 @@
 
 This repo will host an ever growing list of intersting projects that I have been working on.
 
-As of now the only one that I feel confident publishing is some work that I did in my operating systems class. This small project is a demonstration of how to use threads for parrellelization. Specifically it is an implementation of the map reduce paradigm.
+I will continue to post projects related to my operating systems and machine learning studies.
 
-There will be some machine learning projects (and hopefully more on operating systems) coming soon.
+First is the multi-thread map-reduce program. This small project is a demonstration of how to use threads for parrellelization.
+Additionally, I have posted a preliminary version of my support vector machine project. More refinement and documentation for this one is coming soon.
+
+I plan to put out rough versions of adaboost and a demonstration of server client IP interactions soon.
