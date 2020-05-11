@@ -30,7 +30,7 @@ def split_features_labels(data):
     return X, y
 
 def kernel(x, y, sigma):
-    # Calculate the kernel function
+    # Calculate the Gaussian kernel function
     return np.exp((-np.linalg.norm(x - y)**2)/(2*sigma**2))
 
 def rbf_svm_train(X, y, c, sigma):  
@@ -80,12 +80,15 @@ def k_fold_cv(train_data, test_data, k, c, sigma):
     # k-fold cross validation
     cv_accuracy = np.zeros(k)
     test_accuracy = np.zeros(k)
+    print("Starting", k, "fold cross validation with parameters", c, sigma)
     for i in range(k):
+        print("Starting fold:", i)
         split_training_data, split_val_data = split_data_k_portions(train_data, k)
 
         # train on the data
         train_feats, train_lbls = split_features_labels(split_training_data)
         alphas = rbf_svm_train(train_feats, train_lbls, c, sigma)
+        np.savetxt("kernel_svm_model.csv", alphas, delimiter=',')
 
         #calculate validation error
         val_feats, val_lbls = split_features_labels(split_val_data)
@@ -94,7 +97,7 @@ def k_fold_cv(train_data, test_data, k, c, sigma):
             if val_l[j] != val_lbls[j]:
                 cv_accuracy[i] += 1
         cv_accuracy[i] /= len(val_feats)
-        print("Validation error rate for fold number ", i, ", c = ", c, ", σ = ", sigma, " is ",  cv_accuracy[i])
+        print("Validation error rate for fold number", i, "is", cv_accuracy[i])
 
         #calculate testing error
         test_feats, test_lbls = split_features_labels(test_data)
@@ -103,7 +106,7 @@ def k_fold_cv(train_data, test_data, k, c, sigma):
             if test_l[j] != test_lbls[j]:
                 test_accuracy[i] += 1
         test_accuracy[i] /= len(test_feats)
-        print("Test error rate for fold number       ", i, ", c = ", c, ", σ = ", sigma, " is ", test_accuracy[i])
+        print("Test       error rate for fold number", i, "is", test_accuracy[i])
 
     v_acc = np.mean(cv_accuracy)
     tst_acc = np.mean(test_accuracy)
@@ -134,17 +137,17 @@ for i in range(len(C)):
 print("Validation error over C and σ:\n", cv_acc)
 print("Test error over C and σ:\n", test_acc)
 
-# Since RBF kernel involves the second hyper-parameter you may consider using heat map to plot it.
-plt.imshow(cv_acc)
-plt.ylabel("Varying C")
-plt.xlabel("Varying σ")
-plt.colorbar()
-plt.title("Validation Error with varying C and σ")
-plt.show()
+# Since RBF kernel has two hyper-parameters heat map is used for the plot
+# plt.imshow(cv_acc)
+# plt.ylabel("Varying C")
+# plt.xlabel("Varying σ")
+# plt.colorbar()
+# plt.title("Validation Error with varying C and σ")
+# plt.show()
 
-plt.imshow(test_acc)
-plt.ylabel("Varying C")
-plt.xlabel("Varying σ")
-plt.colorbar()
-plt.title("Test Error with varying C and σ")
-plt.show()
+# plt.imshow(test_acc)
+# plt.ylabel("Varying C")
+# plt.xlabel("Varying σ")
+# plt.colorbar()
+# plt.title("Test Error with varying C and σ")
+# plt.show()
