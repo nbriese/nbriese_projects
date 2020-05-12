@@ -34,7 +34,6 @@ def kernel(x, y, sigma):
     return np.exp((-np.linalg.norm(x - y)**2)/(2*sigma**2))
 
 def rbf_svm_train(X, y, c, sigma):  
-    # α = rbf svm train(X, y, c, σ) to train your model
     y_diag = np.diag(y)
     size = len(X)
     P = np.identity(len(X))
@@ -43,13 +42,13 @@ def rbf_svm_train(X, y, c, sigma):
             P[i][j] = kernel(X[i], X[j], sigma)
     P = y_diag.dot(P.dot(y_diag))
 
-    q = -np.ones((len(X),1))
-    h1 = np.zeros((len(X),1))
-    h2 = c*(np.ones((len(X),1)))
-    h = np.concatenate((h1,h2))
+    q  = - np.ones((len(X), 1))
+    h1 = np.zeros((len(X), 1))
+    h2 = c * (np.ones((len(X), 1)))
+    h  = np.concatenate((h1, h2))
     g1 = np.diag(-np.ones(len(X)))
     g2 = np.diag(np.ones(len(X)))
-    G = np.concatenate((g1,g2))
+    G  = np.concatenate((g1, g2))
 
     P = cvxopt.matrix(P, tc='d')
     q = cvxopt.matrix(q, tc='d')
