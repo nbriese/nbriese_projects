@@ -7,20 +7,12 @@ import matplotlib.pyplot as plt
 import cvxopt
 
 def split_data_percent(data, test_percent):
-    # Split this dataset into % split and hold out the last % to be used as test dataset.
-    test_percent /= 100
+    test_percent /= 100.0
     num_test = int(len(data) * test_percent)
     num_train = len(data) - num_test
     train_data = data[:num_train]
     test_data = data[-num_test:]
     return train_data, test_data
-
-def split_data_k_portions(data, k):
-    # splits the data into k portions
-    # last portion might be short by a few entries
-    num_entries = int(len(data)/k) + 1
-    start = (k-1)*num_entries
-    return data[0:start], data[start:]
 
 def split_features_labels(data):
     # Splits the features from the labels
@@ -31,9 +23,9 @@ def split_features_labels(data):
 
 def kernel(x, y, sigma):
     # Calculate the Gaussian kernel function
-    return np.exp((-np.linalg.norm(x - y)**2)/(2*sigma**2))
+    return np.exp((-np.linalg.norm(x - y) ** 2) / (2 * sigma **2))
 
-def rbf_svm_train(X, y, c, sigma):  
+def rbf_svm_train(X, y, c, sigma):
     y_diag = np.diag(y)
     size = len(X)
     P = np.identity(len(X))
@@ -61,92 +53,59 @@ def rbf_svm_train(X, y, c, sigma):
 
     return lambdas
 
-def rbf_svm_predict(test_X, train_X, train_y, alpha, sigma):
-    # label = predict(test X, train X, train y, α, σ) to predicts the labels using the model
-    labels = np.zeros(len(test_X))
-    for i in range(len(test_X)):
+def rbf_svm_predict(test_feats, test_lbls, train_feats, train_lbls, alphas, sigma):
+    # predicts the labels using the model
+    # calculate accuracy for the given test data
+    labels = np.zeros(len(test_feats))
+    acc = 0
+    for i in range(len(test_feats)):
         sum = 0
-        for j in range(len(train_X)):
-            sum += train_y[j] * alpha[j] * kernel(train_X[j], test_X[i], sigma)
+        for j in range(len(train_feats)):
+            sum += train_lbls[j] * alphas[j] * kernel(train_feats[j], test_feats[i], sigma)
         if sum >= 0:
             labels[i] = 1
         else:
             labels[i] = -1
-    return labels
-    
-def k_fold_cv(train_data, test_data, k, c, sigma):
-    # train accuracy, cv accuracy, test accuracy = k fold cv(train data, test data, k, c)
-    # k-fold cross validation
-    cv_accuracy = np.zeros(k)
-    test_accuracy = np.zeros(k)
-    print("Starting", k, "fold cross validation with parameters", c, sigma)
-    for i in range(k):
-        print("Starting fold:", i)
-        split_training_data, split_val_data = split_data_k_portions(train_data, k)
+        if labels[i] == test_lbls[i]:
+            acc += 1
 
-        # train on the data
-        train_feats, train_lbls = split_features_labels(split_training_data)
-        alphas = rbf_svm_train(train_feats, train_lbls, c, sigma)
-        np.savetxt("kernel_svm_model.csv", alphas, delimiter=',')
+    acc /= len(test_data)
 
-        #calculate validation error
-        val_feats, val_lbls = split_features_labels(split_val_data)
-        val_l = rbf_svm_predict(val_feats, train_feats, train_lbls, alphas, sigma)
-        for j in range(len(val_feats)):
-            if val_l[j] != val_lbls[j]:
-                cv_accuracy[i] += 1
-        cv_accuracy[i] /= len(val_feats)
-        print("Validation error rate for fold number", i, "is", cv_accuracy[i])
-
-        #calculate testing error
-        test_feats, test_lbls = split_features_labels(test_data)
-        test_l = rbf_svm_predict(test_feats, train_feats, train_lbls, alphas, sigma)
-        for j in range(len(test_feats)):
-            if test_l[j] != test_lbls[j]:
-                test_accuracy[i] += 1
-        test_accuracy[i] /= len(test_feats)
-        print("Test       error rate for fold number", i, "is", test_accuracy[i])
-
-    v_acc = np.mean(cv_accuracy)
-    tst_acc = np.mean(test_accuracy)
-    return v_acc, tst_acc
-
+    return acc
 
 ##############          DRIVER SECTION          ###############
 
 raw_data = pd.read_csv("XOR_data.csv").to_numpy()
+
+# use 20% of the data as the test set
 train_data, test_data = split_data_percent(raw_data, 20)
- 
-# implement k=10 fold cross validation on the first 80% of the data as split above.
-k = 10
-# C = [0.0001, 0.001, 0.01, 0.1, 1, 10, 100, 1000]
+train_feats, train_lbls = split_features_labels(train_data)
+test_feats,  test_lbls  = split_features_labels(test_data)
+
+# try different values for the misclassification weight
+# C = [0.001, 0.01, 0.1, 1, 10, 100, 1000]
 C = [0.1]
-# sigma = [0.0001, 0.001, 0.01, 0.1, 1, 10, 100, 1000]
+
+# try different values for the varience
+# sigma = [0.001, 0.01, 0.1, 1, 10, 100, 1000]
 sigma = [0.1]
-cv_acc = np.zeros((len(C), len(sigma)))
+
+# training accuracy is not taken into account because it will always be 1
 test_acc = np.zeros((len(C), len(sigma)))
 
-# Please report the error rates as C and σ vary
+# reporting the accuracy as C and σ vary
 for i in range(len(C)):
     for j in range(len(sigma)):
-        cv_acc[i][j], test_acc[i][j] = k_fold_cv(train_data, test_data, k, C[i], sigma[j])
-        print("Validation error rate for c = ", C[i], " σ = ", sigma[j], " is ",  cv_acc[i][j])
-        print("Test error rate for c = ", C[i], " σ = ", sigma[j], " is ", test_acc[i][j])
-    
-print("Validation error over C and σ:\n", cv_acc)
-print("Test error over C and σ:\n", test_acc)
+        print("Starting training for c =", C[i], "σ =", sigma[j])
+        alphas = rbf_svm_train(train_feats, train_lbls, C[i], sigma[j])
+        test_acc[i][j] = rbf_svm_predict(test_feats, test_lbls, train_feats, train_lbls, alphas, sigma[j])
+        np.savetxt("kernel_svm_model_" + str(i) + "_" + str(j) + ".csv", alphas, delimiter=',')
+        print("Test accuracy", test_acc[i][j])
 
-# Since RBF kernel has two hyper-parameters heat map is used for the plot
-# plt.imshow(cv_acc)
-# plt.ylabel("Varying C")
-# plt.xlabel("Varying σ")
-# plt.colorbar()
-# plt.title("Validation Error with varying C and σ")
-# plt.show()
-
+# Since Gaussian kernel has two hyper-parameters heat map is used for the plot
 # plt.imshow(test_acc)
 # plt.ylabel("Varying C")
 # plt.xlabel("Varying σ")
 # plt.colorbar()
-# plt.title("Test Error with varying C and σ")
+# plt.title("Test Accuracy with varying C and σ")
 # plt.show()

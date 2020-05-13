@@ -1,29 +1,26 @@
 # Linear Support Vector Machine
 # Copyright Nathan Briese 2020
 
-import sys
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import cvxopt
 
-def split_data_k_portions(data, k):
-    # splits the data into k portions
-    # last portion might be short by a few entries
-    num_entries = int(len(data)/k) + 1
-    start = (k-1)*num_entries
-    return data[0:start], data[start:]
+def split_data_percent(data, test_percent):
+    # Split this dataset into % split and hold out the last % to be used as test dataset.
+    test_percent /= 100
+    num_test = int(len(data) * test_percent)
+    num_train = len(data) - num_test
+    train_data = data[:num_train]
+    test_data = data[-num_test:]
+    return train_data, test_data
 
 def split_features_labels(data):
     # Splits the features from the labels
     data = np.transpose(data)
-    X = np.transpose(data[:-1])
-    y = np.transpose(data[-1])
-    return X, y
-    # return data[:][:-1], data[-1]
+    return np.transpose(data[:-1]), np.transpose(data[-1])
 
-def svmfit(X, y, c):
-    # to train the model
+def linear_svm_train(X, y, c):
     y_diag = np.diag(y)
     p_matrix = y_diag.dot(X.dot(X.T.dot(y_diag)))
     q_matrix = -np.ones((len(X),1))
@@ -43,12 +40,10 @@ def svmfit(X, y, c):
     sol = cvxopt.solvers.qp(P,q,G,h)
     lambdas = np.array(sol['x'])
     weight = lambdas.T.dot(y_diag.dot(X))
-    weight = weight.T
-    return weight
+    return weight.T
 
 def predict(X, weight):
     # label = predict(X, weight) to predicts the labels using the model
-    # weight can be either ndarray or list
     labels = np.zeros(len(X))
     for i in range(len(X)):
         if weight[0]*X[i][0] + weight[1]*X[i][1] >= 0:
@@ -57,87 +52,45 @@ def predict(X, weight):
             labels[i] = -1.0
     return labels
 
-def k_fold_cv(train_data, test_data, k, c):
-    # train accuracy, cv accuracy, test accuracy = k fold cv(train data, test data, k, c)
-    # k-fold cross validation
-    train_accuracy = np.zeros(k)
-    cv_accuracy = np.zeros(k)
-    test_accuracy = np.zeros(k)
-    print("Beginning Training with", k, "fold cross validation. Learning rate:", c)
-    for i in range(k):
-        print("Starting fold: ", i)
-        split_training_data, split_val_data = split_data_k_portions(train_data, k)
-
-        # train on the data
-        train_feats, train_lbls = split_features_labels(split_training_data)
-        weights = svmfit(train_feats, train_lbls, c)
-        np.savetxt("linear_svm_model.csv", weights, delimiter=',')
-
-        #calculate training error
-        train_l = predict(train_feats, weights)
-        for j in range(len(train_feats)):
-            if train_l[j] == train_lbls[j]:
-                train_accuracy[i] += 1
-        train_accuracy[i] /= len(train_feats)
-        print("Training   Accuracy:", train_accuracy[i])
-
-        #calculate validation error
-        val_feats, val_lbls = split_features_labels(split_val_data)
-        val_l = predict(val_feats, weights)
-        for j in range(len(val_feats)):
-            if val_l[j] == val_lbls[j]:
-                cv_accuracy[i] += 1
-        cv_accuracy[i] /= len(val_feats)
-        print("Validation Accuracy:", cv_accuracy[i])
-
-        #calculate testing error
-        test_feats, test_lbls = split_features_labels(test_data)
-        test_l = predict(test_feats, weights)
-        for j in range(len(test_feats)):
-            if test_l[j] == test_lbls[j]:
-                test_accuracy[i] += 1
-        test_accuracy[i] /= len(test_feats)
-        print("Test       Accuracy:", test_accuracy[i])
-
-    t_acc = np.mean(train_accuracy)
-    v_acc = np.mean(cv_accuracy)
-    tst_acc = np.mean(test_accuracy)
-    return t_acc, v_acc, tst_acc
-
-
-def split_data_percent(data, test_percent):
-    # Split this dataset into % split and hold out the last % to be used as test dataset.
-    test_percent /= 100
-    num_test = int(len(data) * test_percent)
-    num_train = len(data) - num_test
-    train_data = data[:num_train]
-    test_data = data[-num_test:]
-    return train_data, test_data
+def get_accuracy(feats, lbls, weight):
+    acc = 0
+    labels = predict(feats, weight)
+    for i in range(len(feats)):
+        if labels[i] == lbls[i]:
+            acc += 1
+    acc /= len(feats)
+    return acc
 
 ##############          DRIVER SECTION          ###############
 
 raw_data = pd.read_csv("XOR_data.csv").to_numpy()
-train_data, test_data = split_data_percent(raw_data, 20)
 
-k = 10
+# use 20% of the data as the test set
+train_data, test_data = split_data_percent(raw_data, 20)
+train_feats, train_lbls = split_features_labels(train_data)
+test_feats,  test_lbls  = split_features_labels(test_data)
+
+# try different values for the misclassification weight
 # C = [0.0001, 0.001, 0.01, 0.1, 1, 10, 100, 1000]
 C = [0.1, 1, 10]
 
 train_acc = np.zeros(len(C))
-cv_acc = np.zeros(len(C))
 test_acc = np.zeros(len(C))
 
 # report the average train, validation and test accuracy as C varies.
 for i in range(len(C)):
-    train_acc[i], cv_acc[i], test_acc[i] = k_fold_cv(train_data, test_data, k, C[i])
-    print("Training   accuaracy for learning rate", C[i], " is ", train_acc[i])
-    print("Validation accuaracy for learning rate", C[i], " is ", cv_acc[i])
-    print("Test       accuaracy for learning rate", C[i], " is ", test_acc[i])
+    print("Starting training for c=", C[i])
+    weight = linear_svm_train(train_feats, train_lbls, C[i])
+    np.savetxt("linear_svm_model_" + str(i) + ".csv", weight, delimiter=',')
+    train_acc[i] = get_accuracy(train_feats, train_lbls, weight)
+    test_acc[i]  = get_accuracy(test_feats, test_lbls, weight)
+
+    print("Training accuracy", train_acc[i])
+    print("Test     accuracy", test_acc[i])
 
 # Generate a plot
-C_names = str(C)
+C_names = [str(c) for c in C]
 plt.plot(C_names, train_acc, label='Training')
-plt.plot(C_names, cv_acc, label='Validation')
 plt.plot(C_names, test_acc, label='Test')
 plt.ylabel("Accuracy")
 plt.xlabel("Different Values of C")
