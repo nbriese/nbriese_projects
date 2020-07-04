@@ -6,7 +6,7 @@ The goal of this project is to write python scripts that can classify data using
 Almost all the relevant parts of the code (with the exception of the convex optimization) has been written from scratch.
 
 - SVM:
-SVM is one of the classic examples of classification algorithms.
+The support vector machine is a very old clasification algorithm.
 The linear decision boundary is decided by simultaneously maximizing the distance between the boundary and the nearest points and minimizing the misclassification error.
 This is a dual valued, convex optimization problem. 
 Let w be the vector that makes the decision boundary.
@@ -32,7 +32,7 @@ We see roughly 50% test accuracy for the linear svm, but accuracy in the 90s for
 
 - How do I plan to expand this program in the future?
 I would like to be able to save and load models for reuse.
-I would like to find a better / more interesting data set to use for this problem. Although it is interesting to see the difference in performance between linear and kernel SVM on non-linearly separable data.
+I would like to find a better / more interesting data set to use for this problem. Although, it is interesting to see the difference in performance between linear and kernel SVM on non-linearly separable data.
 
 - How to compile and run the program:
 In addition to python 3, you will need numpy, pandas, matplotlib, and cxvopt libraries installed.
