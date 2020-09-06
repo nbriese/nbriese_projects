@@ -1,4 +1,4 @@
-# Variational Auto encoder
+# Variational Auto Encoder
 # Nathan Briese
 
 import numpy as np
@@ -6,6 +6,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
+import torch.cuda as cuda
 import torchvision
 import torchvision.transforms as transforms
 import matplotlib.pyplot as plt
@@ -26,6 +27,7 @@ def main(argv):
         print("-l specify the learning rate")
         print("-e specify the number of epochs")
         sys.exit()
+        
     for opt, arg in opts:
         if opt == '-t':
             train_switch = True
@@ -35,6 +37,7 @@ def main(argv):
             num_epochs = int(arg)
 
     if(train_switch):
+        torch.set_default_tensor_type(cuda.FloatTensor)
         train(num_epochs, learn_rate)
     test()
 
@@ -73,9 +76,9 @@ def train(num_epochs, learn_rate):
     trainset = torchvision.datasets.MNIST(root="./data", train=True, download=True, transform=transforms.ToTensor())
     trainloader = torch.utils.data.DataLoader(trainset, batch_size=64, shuffle=True)
 
-    net = VAE_NET()
+    net = VAE_NET().cuda()
 
-    criterion = nn.BCELoss(reduction='sum')
+    criterion = nn.BCELoss(reduction='sum').cuda()
     optimizer = optim.Adam(net.parameters(), lr=learn_rate)
 
     loss_list = np.zeros(num_epochs)
@@ -84,8 +87,8 @@ def train(num_epochs, learn_rate):
     for epoch in range(num_epochs):
         print("Epoch: ", epoch+1)
         running_loss = 0.0
-        for _, data in enumerate(trainloader, 0):
-            inputs, _ = data
+        for _, (inputs, _) in enumerate(trainloader, 0):
+            inputs = inputs.cuda()
 
             # zero the parameter gradients
             optimizer.zero_grad()
