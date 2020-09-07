@@ -1,1 +1,5 @@
-./client/MapperInput/*
+client/MapperInput/
+client/log/
+client/client
+server/server
+results.txt
